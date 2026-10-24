@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: juice-shop
+  namespace: juice-shop
+  labels:
+    app.kubernetes.io/name: juice-shop
+spec:
+  replicas: 1   # Juice Shop guarda su estado en memoria: no escalar horizontalmente
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: juice-shop
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: juice-shop
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: juice-shop
+          # El pipeline reemplaza esta imagen por juice-shop:<sha del commit> (kubectl set image)
+          image: juice-shop:ci
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            # La app escribe en logs/, ftp/ y data/. Se deja false y se registra como
+            # hallazgo/excepción hasta validar un montaje emptyDir por directorio.
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+          startupProbe:
+            httpGet:
+              path: /rest/admin/application-version
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /rest/admin/application-version
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /rest/admin/application-version
+              port: http
+            periodSeconds: 20

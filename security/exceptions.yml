@@ -1,0 +1,465 @@
+# =============================================================================
+# Registro de excepciones (riesgo aceptado) - triaje de la ejecución 1.
+# Una excepción SOLO es válida si tiene tool, id, justification, owner y expires
+# (AAAA-MM-DD, máximo 180 días). Si vence o está incompleta, QG-08 bloquea.
+#
+# Responsables: Carlos Bernal (Seguridad, Líder técnico), Kevin Morales
+# (Desarrollador), Rafael Pachon (DevOps). Un responsable vacío o pendiente bloquea QG-08.
+#
+# Corregido en código (por eso NO aparece aquí):
+#   VULN-002 inyección SQL en routes/login.ts      -> consulta parametrizada
+#   VULN-005 imagen base sin versión fija           -> etiqueta + digest
+#   VULN-006 Dockerfile sin HEALTHCHECK             -> HEALTHCHECK agregado
+#   Pipeline: reporte ZAP no encontrado (QG-07)     -> ruta del artefacto
+# =============================================================================
+exceptions:
+
+  # --- SECRETOS (Gitleaks) - FALSOS POSITIVOS: datos de prueba o identificadores públicos ---
+  - tool: gitleaks
+    id: '*'
+    path: test/*
+    justification: 'Falso positivo: fixtures de pruebas automatizadas (tokens JWT de ejemplo, credenciales de passkey
+      de prueba). No dan acceso a ningún servicio real y no se despliegan.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+  - tool: gitleaks
+    id: '*'
+    path: cypress/*
+    justification: 'Falso positivo: datos de las pruebas end-to-end de Cypress. Valores ficticios sin acceso a servicios
+      reales.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+  - tool: gitleaks
+    id: '*'
+    path: frontend/src/*.spec.ts
+    justification: 'Falso positivo: pruebas unitarias del frontend con tokens JWT de ejemplo. No forman parte del
+      bundle desplegado.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+  - tool: gitleaks
+    id: generic-api-key
+    path: frontend/src/app/manage-passkeys/passkey-providers.ts
+    justification: 'Falso positivo verificado: son AAGUID públicos de proveedores de passkeys (lista pública passkey-authenticator-aaguids).
+      Identifican modelos de autenticador; no son credenciales.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+  - tool: gitleaks
+    id: generic-api-key
+    path: frontend/src/app/faucet/faucet.component.ts
+    justification: 'Falso positivo verificado: es la dirección pública de un contrato Ethereum (BeeTokenAddress).
+      Las direcciones de contrato son públicas por diseño.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+  - tool: gitleaks
+    id: '*'
+    path: evidencias/*
+    justification: 'Falso positivo: reportes JSON de los escáneres guardados como evidencia. Los secretos que citan
+      ya vienen censurados con asteriscos por Gitleaks y Trivy; no contienen valores reales.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+
+  # --- SECRETOS (Gitleaks) - ACEPTADOS: secretos intencionales del laboratorio ---
+  - tool: gitleaks
+    id: private-key
+    path: lib/insecurity.js
+    justification: 'Clave privada RSA de firma JWT, intencional del reto de falsificación de tokens (ST-02, ST-23).
+      En producción se rotaría, se retiraría del historial y se movería a un gestor de secretos (ADR-SEC-001). Controles
+      compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva
+      y contenedor sin privilegios.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: gitleaks
+    id: private-key
+    path: '*terraform/networking.tf'
+    justification: 'Clave TLS de ejemplo, intencional del reto de clave filtrada en IaC. El directorio terraform no
+      se despliega en este pipeline. Controles compensatorios: despliegue solo en kind efímero dentro del runner,
+      sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: gitleaks
+    id: generic-api-key
+    path: data/*
+    justification: 'Datos semilla de usuarios ficticios del laboratorio (secretos TOTP y respuestas de seguridad usados
+      por retos), en la versión actual y en archivos históricos. Controles compensatorios: despliegue solo en kind
+      efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: gitleaks
+    id: generic-api-key
+    path: routes/login.*
+    justification: 'Contraseñas ficticias con las que el servidor comprueba si un reto fue resuelto. No corresponden
+      a cuentas reales. Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales,
+      NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: gitleaks
+    id: generic-api-key
+    path: server.js
+    justification: Archivo eliminado del repositorio en 2014; el valor solo vive en el historial público de upstream.
+      Reescribir el historial rompería el fork. Riesgo residual documentado.
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: gitleaks
+    id: generic-api-key
+    path: .travis.yml
+    justification: Configuración de CI retirada en 2014; el valor solo vive en el historial público de upstream. Reescribir
+      el historial rompería el fork. Riesgo residual documentado.
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: gitleaks
+    id: private-key
+    path: vagrant/*
+    justification: Clave insegura por defecto de Vagrant, pública y conocida, subida por error en 2017 y ya eliminada.
+      No protege ningún sistema de este proyecto.
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+
+  # --- SECRETOS DENTRO DE LA IMAGEN (Trivy imagen) - visibles tras corregir el punto ciego de QG-04 ---
+  - tool: trivy-image
+    id: private-key
+    path: /juice-shop/*lib/insecurity.*
+    justification: 'Misma clave RSA de firma JWT del reto (ST-02, ST-23), en el código fuente y en el compilado build/lib/insecurity.js.
+      Confirma que el secreto viaja en el artefacto desplegado. Controles compensatorios: despliegue solo en kind
+      efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: trivy-image
+    id: private-key
+    path: /juice-shop/infrastructure/*
+    justification: 'Clave TLS de ejemplo del reto de clave filtrada en IaC; el servidor publica esta carpeta a propósito
+      para el reto. Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales,
+      NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-001
+  - tool: trivy-image
+    id: jwt-token
+    path: /juice-shop/frontend/src/*.spec.ts
+    justification: 'Falso positivo: tokens JWT de ejemplo en pruebas unitarias del frontend, copiados a la imagen
+      junto con el código fuente. No dan acceso a nada.'
+    owner: Carlos Bernal (Seguridad)
+    expires: '2027-01-31'
+    ticket: VULN-007
+
+  # --- SAST (Semgrep) - ACEPTADOS: vulnerabilidades intencionales (la de routes/login.ts se CORRIGIÓ) ---
+  - tool: semgrep
+    id: javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection
+    path: routes/search.ts
+    justification: 'Inyección SQL UNION intencional del reto unionSqlInjection (ST-06). Se conserva para el laboratorio;
+      la corrección es la misma consulta parametrizada aplicada en routes/login.ts. Controles compensatorios: despliegue
+      solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Kevin Morales (Desarrollador)
+    expires: '2027-01-31'
+    ticket: VULN-003
+  - tool: semgrep
+    id: javascript.lang.security.audit.code-string-concat.code-string-concat
+    path: routes/userProfile.ts
+    justification: 'Uso de eval intencional del reto SSTI (inyección de plantillas en el nombre de usuario). Amenaza
+      no modelada en la Actividad 2: se propone agregarla a la matriz. Controles compensatorios: despliegue solo en
+      kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Kevin Morales (Desarrollador)
+    expires: '2027-01-31'
+    ticket: VULN-012
+
+  # --- IaC (Trivy config) - FALSO POSITIVO y ACEPTADO ---
+  - tool: trivy-iac
+    id: '*'
+    path: data/static/codefixes/*
+    justification: 'Falso positivo de alcance: son fragmentos de Terraform que la app muestra como opciones de un
+      reto de código. No se aplican a ninguna nube ni forman parte de la infraestructura desplegada.'
+    owner: Rafael Pachon (DevOps)
+    expires: '2027-01-31'
+    ticket: VULN-008
+  - tool: trivy-iac
+    id: KSV-0014
+    path: k8s/deployment.yaml
+    justification: 'Juice Shop escribe en logs/, ftp/, data/ e i18n/ al arrancar; un sistema de archivos de solo lectura
+      requiere montajes emptyDir validados. Compensan: usuario no root, allowPrivilegeEscalation=false, capabilities
+      drop ALL, seccomp RuntimeDefault y NetworkPolicy.'
+    owner: Rafael Pachon (DevOps)
+    expires: '2027-01-31'
+    ticket: VULN-009
+
+  # --- DEPENDENCIAS (Trivy SCA e imagen) - ACEPTADAS con plan de remediación ---
+  - tool: trivy-sca
+    id: '*'
+    package: jsonwebtoken
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. CVE-2015-9235
+      permite saltar la verificación de firma.Controles compensatorios: despliegue solo en kind efímero dentro del
+      runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: jsonwebtoken
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. CVE-2015-9235
+      permite saltar la verificación de firma.Controles compensatorios: despliegue solo en kind efímero dentro del
+      runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: express-jwt
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. Controles
+      compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva
+      y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: express-jwt
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. Controles
+      compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva
+      y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: jws
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. Transitiva
+      de jsonwebtoken 0.4.0.Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos
+      reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: jws
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. Transitiva
+      de jsonwebtoken 0.4.0.Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos
+      reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: base64url
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. Transitiva
+      de jws.Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy
+      restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: base64url
+    justification: 'Dependencia fijada a propósito para los retos de JWT (ST-02). Actualizarla elimina el reto. Transitiva
+      de jws.Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy
+      restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: marsdb
+    justification: 'Base documental del reto de inyección NoSQL (ST-20). No existe versión corregida: la salida real
+      sería reemplazarla. Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales,
+      NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-010
+  - tool: trivy-image
+    id: '*'
+    package: marsdb
+    justification: 'Base documental del reto de inyección NoSQL (ST-20). No existe versión corregida: la salida real
+      sería reemplazarla. Controles compensatorios: despliegue solo en kind efímero dentro del runner, sin datos reales,
+      NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-010
+  - tool: trivy-sca
+    id: '*'
+    package: sanitize-html
+    justification: 'Versión 1.4.2 fijada a propósito para el reto de XSS almacenado (ST-19). Controles compensatorios:
+      despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor
+      sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-011
+  - tool: trivy-image
+    id: '*'
+    package: sanitize-html
+    justification: 'Versión 1.4.2 fijada a propósito para el reto de XSS almacenado (ST-19). Controles compensatorios:
+      despliegue solo en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor
+      sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-011
+  - tool: trivy-sca
+    id: '*'
+    package: crypto-js
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: crypto-js
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: lodash
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: lodash
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: moment
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: moment
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: decompress
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: decompress
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: tar
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: tar
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: minimatch
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: minimatch
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: http-cache-semantics
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: http-cache-semantics
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: basic-ftp
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-image
+    id: '*'
+    package: basic-ftp
+    justification: 'Dependencia transitiva arrastrada por paquetes del laboratorio. Corregirla exige overrides de
+      npm y pruebas de regresión; queda en el backlog con fecha límite. Controles compensatorios: despliegue solo
+      en kind efímero dentro del runner, sin datos reales, NetworkPolicy restrictiva y contenedor sin privilegios.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: vite
+    justification: 'Dependencia de desarrollo del frontend (herramienta de build). No viaja en la imagen: el escaneo
+      de la imagen no la reporta.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004
+  - tool: trivy-sca
+    id: '*'
+    package: ws
+    justification: 'Dependencia de desarrollo del frontend (servidor de recarga de Vite). No viaja en la imagen: el
+      escaneo de la imagen no la reporta.'
+    owner: Carlos Bernal (Líder técnico)
+    expires: '2027-01-31'
+    ticket: VULN-004

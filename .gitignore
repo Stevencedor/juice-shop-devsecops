@@ -71,3 +71,9 @@ config/*.yml
 # Misc
 .playwright-mcp/
 cypress/screenshots/
+
+# Actividad 3 (DevSecOps)
+# Los ZIP descargados de Actions duplican las carpetas extraídas en evidencias/
+evidencias/**/*.zip
+# Caché de Python generada al ejecutar las pruebas del evaluador
+__pycache__/
