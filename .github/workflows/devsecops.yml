@@ -85,7 +85,7 @@ jobs:
             --config p/owasp-top-ten --config p/javascript --config p/typescript --config p/nodejs \
             --metrics=off --json --output reports/semgrep.json \
             --exclude node_modules --exclude test --exclude cypress --exclude rsn \
-            --exclude data/static/codefixes --exclude frontend/src/assets \
+            --exclude data/static/codefixes --exclude frontend/src/assets --exclude evidencias \
             .
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -271,13 +271,17 @@ jobs:
         run: |
           mkdir -p reports
           cp report_json.json reports/zap.json
+          cp report_html.html reports/zap.html || true
+      # Corrección (ejecución 1): con rutas en carpetas distintas, upload-artifact
+      # guardaba zap.json dentro de reports/ y el gate no lo encontraba (SIN EVIDENCIA).
+      # Ahora ambos archivos quedan en reports/ y se publican en la raíz del artefacto.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: reports-dast
           path: |
             reports/zap.json
-            report_html.html
+            reports/zap.html
           if-no-files-found: warn
 
   # ---------------------------------------------------------------------------

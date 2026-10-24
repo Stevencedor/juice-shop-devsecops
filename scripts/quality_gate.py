@@ -171,7 +171,10 @@ def suppressed_by(finding: Finding, exceptions) -> dict | None:
 
 # --------------------------------------------------------------- evaluation
 def fix_matches(mode: str, f: Finding) -> bool:
-    return mode == "any" or (mode == "fixed" and f.fixed is True) or (mode == "unfixed" and f.fixed is False)
+    # "secret": hallazgos sin noción de versión corregida (secretos en capas de la imagen).
+    # Sin este modo, un secreto HIGH no coincidía con "fixed" ni con "unfixed" y pasaba sin contarse.
+    return (mode == "any" or (mode == "fixed" and f.fixed is True) or (mode == "unfixed" and f.fixed is False)
+            or (mode == "secret" and f.fixed is None))
 
 
 def evaluate(gate: dict, reports: Path, exceptions, invalid_exceptions) -> dict:

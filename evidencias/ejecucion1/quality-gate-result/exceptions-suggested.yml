@@ -1,0 +1,479 @@
+# Sugerencias automáticas. NO copiar sin triaje: cada grupo se corrige o se acepta con justificación real.
+# Completar justification, owner y expires (los campos hallazgos/ejemplos/ubicación son informativos y se pueden borrar).
+exceptions:
+- tool: gitleaks
+  id: generic-api-key
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 164
+  severidad_máxima: HIGH
+  ejemplos:
+  - generic-api-key
+  ubicación: test/api/helpers/passkey.ts:56
+- tool: gitleaks
+  id: jwt
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 54
+  severidad_máxima: HIGH
+  ejemplos:
+  - jwt
+  ubicación: test/server/verify.unit.test.ts:321
+- tool: gitleaks
+  id: private-key
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 7
+  severidad_máxima: HIGH
+  ejemplos:
+  - private-key
+  ubicación: test/files/passkeyVictimCredential.json:4
+- tool: semgrep
+  id: javascript.lang.security.audit.code-string-concat.code-string-concat
+  path: routes/userProfile.ts
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - javascript.lang.security.audit.code-string-concat.code-string-concat
+  ubicación: routes/userProfile.ts:65
+- tool: semgrep
+  id: javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: HIGH
+  ejemplos:
+  - javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection
+  ubicación: routes/login.ts:34
+- tool: trivy-iac
+  id: AWS-0037
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: HIGH
+  ejemplos:
+  - AWS-0037
+  ubicación: data/static/codefixes/iacLeakedKeyChallenge_1.tf
+- tool: trivy-iac
+  id: AWS-0052
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: HIGH
+  ejemplos:
+  - AWS-0052
+  ubicación: data/static/codefixes/iacLeakedKeyChallenge_1.tf
+- tool: trivy-iac
+  id: AWS-0053
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: HIGH
+  ejemplos:
+  - AWS-0053
+  ubicación: data/static/codefixes/iacLeakedKeyChallenge_1.tf
+- tool: trivy-iac
+  id: AWS-0054
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - AWS-0054
+  ubicación: data/static/codefixes/iacLeakedKeyChallenge_1.tf
+- tool: trivy-iac
+  id: AWS-0104
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 9
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - AWS-0104
+  ubicación: data/static/codefixes/iacLeakedKeyChallenge_1.tf
+- tool: trivy-iac
+  id: AWS-0164
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: HIGH
+  ejemplos:
+  - AWS-0164
+  ubicación: data/static/codefixes/iacLeakedKeyChallenge_1.tf
+- tool: trivy-iac
+  id: KSV-0014
+  path: k8s/deployment.yaml
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - KSV-0014
+  ubicación: k8s/deployment.yaml
+- tool: trivy-image
+  id: '*'
+  package: base64url
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - NSWG-ECO-428
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: basic-ftp
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2026-102990
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: crypto-js
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2023-46233
+  - CVE-2026-71851
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: decompress
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2026-101894
+  - CVE-2026-53486
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: express-jwt
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2020-15084
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: http-cache-semantics
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2022-25881
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: jsonwebtoken
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 6
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2015-9235
+  - CVE-2022-23539
+  - NSWG-ECO-17
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: jws
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2016-1000223
+  - CVE-2025-65945
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: lodash
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2018-16487
+  - CVE-2019-10744
+  - CVE-2021-23337
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: marsdb
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - GHSA-5mrr-rgp6-x4gr
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: minimatch
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2026-26996
+  - CVE-2026-27903
+  - CVE-2026-27904
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: moment
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2017-18214
+  - CVE-2022-24785
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: sanitize-html
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2022-25887
+  ubicación: Node.js
+- tool: trivy-image
+  id: '*'
+  package: tar
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 9
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2026-23745
+  - CVE-2026-23950
+  - CVE-2026-24842
+  ubicación: Node.js
+- tool: trivy-sca
+  id: '*'
+  package: base64url
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - NSWG-ECO-428
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: basic-ftp
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2026-102990
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: crypto-js
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2023-46233
+  - CVE-2026-71851
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: decompress
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2026-101894
+  - CVE-2026-53486
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: express-jwt
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2020-15084
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: http-cache-semantics
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2022-25881
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: jsonwebtoken
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 6
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2015-9235
+  - CVE-2022-23539
+  - NSWG-ECO-17
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: jws
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2016-1000223
+  - CVE-2025-65945
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: lodash
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2018-16487
+  - CVE-2019-10744
+  - CVE-2021-23337
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: marsdb
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - GHSA-5mrr-rgp6-x4gr
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: minimatch
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 3
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2026-26996
+  - CVE-2026-27903
+  - CVE-2026-27904
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: moment
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 2
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2017-18214
+  - CVE-2022-24785
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: sanitize-html
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2022-25887
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: tar
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 9
+  severidad_máxima: CRITICAL
+  ejemplos:
+  - CVE-2026-23745
+  - CVE-2026-23950
+  - CVE-2026-24842
+  ubicación: package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: vite
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2026-112942
+  ubicación: frontend/package-lock.json
+- tool: trivy-sca
+  id: '*'
+  package: ws
+  justification: 'TODO: por qué se acepta y qué controles compensan'
+  owner: TODO
+  expires: 'TODO: AAAA-MM-DD'
+  hallazgos: 1
+  severidad_máxima: HIGH
+  ejemplos:
+  - CVE-2026-48779
+  ubicación: frontend/package-lock.json

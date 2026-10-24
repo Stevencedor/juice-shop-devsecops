@@ -112,6 +112,16 @@ class GateTests(unittest.TestCase):
                        " owner: 'Ana', expires: '2026-12-01'}\n")
         self.assertEqual(run(self.d, exc), 0)
 
+    def test_image_secret_blocks_and_path_exception_suppresses(self):
+        # Caso real de la ejecución 1: clave privada HIGH dentro de la imagen que antes no se contaba.
+        s = {"RuleID": "private-key", "Severity": "HIGH", "Title": "Asymmetric Private Key", "StartLine": 21}
+        write(self.d, "trivy-image.json", {"Results": [{"Target": "/juice-shop/lib/insecurity.ts", "Secrets": [s]}]})
+        self.assertEqual(run(self.d), 1)
+        exc = self.d / "exc.yml"
+        exc.write_text("exceptions:\n- {tool: trivy-image, id: private-key, path: '/juice-shop/*lib/insecurity.*',"
+                       " justification: 'reto', owner: 'Ana', expires: '2026-12-01'}\n")
+        self.assertEqual(run(self.d, exc), 0)
+
     def test_suggestions_file_is_generated(self):
         write(self.d, "gitleaks.json", [{"RuleID": "k", "File": "f", "StartLine": 1}])
         run(self.d)

@@ -5,7 +5,8 @@
 # kind     : como se interpreta el reporte (gitleaks|semgrep|trivy|zap|sbom|exceptions)
 # tool     : nombre que se usa en security/exceptions.yml
 # rules    : umbral por severidad. severities = severidades afectadas,
-#            fix = any | fixed | unfixed (solo SCA/contenedor: hay versión corregida?),
+#            fix = any | fixed | unfixed (solo SCA/contenedor: hay versión corregida?)
+#                  | secret (hallazgos sin versión: secretos dentro de la imagen),
 #            max = cantidad tolerada, action = block | warn
 # Escala de severidad (alto/medio/bajo): CRITICAL/HIGH = alto, MEDIUM = medio, LOW/INFO = bajo
 # =============================================================================
@@ -82,6 +83,8 @@ gates:
     kind: trivy
     report: trivy-image.json
     rules:
+      # Corrección tras la ejecución 1: los secretos en capas no se contaban (punto ciego).
+      - {severities: [CRITICAL, HIGH, MEDIUM, LOW], fix: secret, max: 0, action: block}
       - {severities: [CRITICAL], fix: any, max: 0, action: block}
       - {severities: [HIGH], fix: fixed, max: 0, action: block}
       - {severities: [HIGH], fix: unfixed, max: 0, action: warn}

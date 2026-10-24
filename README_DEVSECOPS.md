@@ -27,7 +27,8 @@ security/quality-gates.yml        política: umbral + acción por control
 security/exceptions.yml           riesgo aceptado (responsable, justificación, vencimiento ≤180 días)
 scripts/quality_gate.py           evaluador (pruebas: python -m unittest discover -s scripts/tests)
 k8s/                              namespace (PSA restricted), deployment, service, networkpolicy
-docs/                             trazabilidad, quality gates (xlsx), plantilla de reporte, guion de video
+docs/                             contexto, trazabilidad, quality gates (xlsx), reporte de hallazgos, diagrama, checklist
+evidencias/                       reportes y capturas de cada ejecución (ejecucion1, ejecucion2) y análisis preliminar
 ```
 
 ## Cómo se decide
