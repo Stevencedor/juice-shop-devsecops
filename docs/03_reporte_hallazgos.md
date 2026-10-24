@@ -2,7 +2,7 @@
 
 **Repositorio:** https://github.com/Stevencedor/juice-shop-devsecops · **Rama:** `feature/devsecops-pipeline`
 **Ejecución 1:** commit `c39085f` · 2026-10-24 · (https://github.com/Stevencedor/juice-shop-devsecops/actions/runs/40063793133)
-**Ejecución 2:** commit `<sha>` · <AAAA-MM-DD> · <pegar enlace>
+**Ejecución 2:** commit `4048e46` · 2026-10-24 · (https://github.com/Stevencedor/juice-shop-devsecops/actions/runs/40130173330)
 **Ambiente:** laboratorio (GitHub Actions + kind efímero, sin datos reales). Evidencia en `evidencias/ejecucion1/` y `evidencias/ejecucion2/`.
 
 ## 1. Resumen ejecutivo
@@ -11,28 +11,32 @@ La primera ejecución analizó el código original de Juice Shop y el gate **blo
 
 | Control | Gate | Ejecución 1 (código original) | Ejecución 2 (tras triaje) |
 |---|---|---|---|
-| Secretos | QG-01 | ⛔ 225 secretos (historial git) | ✅ esperado: 225 cubiertos por excepciones |
-| SAST | QG-02 | ⛔ 3 altas · ⚠️ 17 medias | ⚠️ esperado: 0 altas (1 corregida, 2 aceptadas) |
-| SCA | QG-03 | ⛔ 9 críticas · 28 altas con parche · 1 alta sin parche · 32 medias | ⚠️ esperado: solo medias |
-| Contenedor | QG-04 | ⛔ 9 críticas · 26 altas con parche · 52 medias (+3 secretos altos no contados, ver P-02) | ⚠️ esperado: solo medias |
-| IaC | QG-05 | ⛔ 25 críticas/altas · 4 medias | ⚠️/✅ esperado: 0 altas |
-| SBOM | QG-06 | ✅ 2 744 componentes | ✅ |
-| DAST | QG-07 | ⛔ SIN EVIDENCIA (defecto del pipeline, ver P-01) | ⚠️ esperado: 0 altas · 2 medias |
-| Excepciones | QG-08 | ✅ sin excepciones | ✅ excepciones completas y vigentes |
-| **Decisión** | | **⛔ BLOQUEA** | **⚠️ esperado: LIBERA con advertencias** |
+| Secretos | QG-01 | ⛔ 225 secretos (historial git) | ✅ 0 activos · 225 cubiertos por excepciones |
+| SAST | QG-02 | ⛔ 3 altas · ⚠️ 17 medias | ⚠️ 0 altas (1 corregida, 2 aceptadas) · 17 medias |
+| SCA | QG-03 | ⛔ 9 críticas · 28 altas con parche · 1 alta sin parche · 32 medias | ⚠️ 0 críticas/altas · 5 medias · 67 cubiertos |
+| Contenedor | QG-04 | ⛔ 9 críticas · 26 altas con parche · 52 medias (+3 secretos altos no contados, ver P-02) | ⚠️ 0 secretos/críticas/altas · 28 medias · 64 cubiertos |
+| IaC | QG-05 | ⛔ 25 críticas/altas · 4 medias | ✅ 0 activos · 49 cubiertos (2 hallazgos del Dockerfile corregidos) |
+| SBOM | QG-06 | ✅ 2 744 componentes | ✅ 2 744 componentes |
+| DAST | QG-07 | ⛔ SIN EVIDENCIA (defecto del pipeline, ver P-01) | ⚠️ 0 altas · 2 medias |
+| Excepciones | QG-08 | ✅ sin excepciones | ✅ 50 excepciones completas y vigentes |
+| **Decisión** | | **⛔ BLOQUEA** · deploy omitido | **⚠️ LIBERA con advertencias** · deploy y smoke test ✅ |
 
-> Completar la columna de la ejecución 2 con `evidencias/ejecucion2/quality-gate-result/gate-summary.md`. Los valores "esperado" provienen de una simulación local del evaluador con los reportes reales de la ejecución 1.
+Fuente: `evidencias/ejecucion1/` y `evidencias/ejecucion2/quality-gate-result/gate-summary.md`. Una simulación local del evaluador con los reportes de la ejecución 1 había anticipado este mismo resultado antes del push.
 
-**Conteo por severidad de la ejecución 1 (hallazgos de herramientas):**
+**Despliegue de la ejecución 2** (`evidencias/ejecucion2/deploy-evidence/`): Deployment `1/1` disponible con la imagen `juice-shop:4048e46…`; pod `Running` sin reinicios; Service `ClusterIP` (sin exposición externa); NetworkPolicy `juice-shop-restrict` aplicada; `securityContext` con `runAsNonRoot`, usuario 65532 y seccomp `RuntimeDefault`. La prueba de humo respondió `{"version":"20.3.0"}`.
 
-| Fuente | Crítica | Alta | Media | Baja |
-|---|---|---|---|---|
-| Gitleaks | — | 225 | — | — |
-| Semgrep | — | 3 | 17 | — |
-| Trivy SCA | 9 | 29 | 32 | 5 |
-| Trivy imagen (CVE + secretos) | 9 | 30 | 52 | 11 |
-| Trivy IaC | 12 | 13 | 4 | 22 |
-| ZAP | — | 0 | 2 | 0 |
+**Conteo por severidad (hallazgos que reportan las herramientas, antes de aplicar excepciones):**
+
+| Fuente | Ejecución 1 · C / A / M / B | Ejecución 2 · C / A / M / B | Cambio |
+|---|---|---|---|
+| Gitleaks | — / 225 / — / — | — / 225 / — / — | Igual: el historial git no cambia |
+| Semgrep | — / 3 / 17 / — | — / 2 / 17 / — | −1 alta (VULN-002 corregida) |
+| Trivy SCA | 9 / 29 / 32 / 5 | 9 / 29 / 32 / 5 | Igual: dependencias aceptadas |
+| Trivy imagen (CVE + secretos) | 9 / 30 / 52 / 11 | 9 / 30 / 52 / 11 | Igual: dependencias aceptadas |
+| Trivy IaC | 12 / 13 / 4 / 22 | 12 / 13 / 3 / 21 | −1 media y −1 baja (VULN-005 y VULN-006 corregidas) |
+| ZAP | — / 0 / 2 / 0 | — / 0 / 2 / 4 | +4 bajas informativas; no cambian la decisión |
+
+C = crítica, A = alta, M = media, B = baja.
 
 ## 2. Hallazgos de la aplicación (formato VULN-nnn)
 
@@ -62,7 +66,7 @@ La primera ejecución analizó el código original de Juice Shop y el gate **blo
 | Evidencia | `reports-sast/semgrep.json` (ejecución 1) |
 | Impacto | Toma de cuentas, incluida la administrativa, sin credenciales. |
 | Remediación aplicada | Consulta parametrizada con `bind` (`$1`, `$2`), idéntica a la corrección oficial `data/static/codefixes/loginAdminChallenge_4_correct.ts`. |
-| Criterio de cierre | Semgrep sin el hallazgo en la ejecución 2 sin excepción; pruebas unitarias del servidor en verde. |
+| Criterio de cierre | Semgrep sin el hallazgo en la ejecución 2 sin excepción; pruebas unitarias del servidor en verde. **Cumplido:** en la ejecución 2 Semgrep ya no reporta `routes/login.ts` y el job de pruebas terminó en verde. |
 | Decisión | **Corregir** (commit de remediación del triaje 1). |
 | Responsable | Kevin Morales (Desarrollador) |
 
@@ -105,7 +109,7 @@ La primera ejecución analizó el código original de Juice Shop y el gate **blo
 | Amenaza Act. 2 | ST-22 Compromiso de dependencia (cadena de suministro) |
 | Descripción | Sin etiqueta ni digest, cada build puede traer una imagen base distinta, sin trazabilidad. |
 | Remediación aplicada | `FROM ...:nonroot@sha256:cb606325…` (etiqueta explícita y digest inmutable). |
-| Criterio de cierre | Trivy IaC sin `DS-0001` en la ejecución 2. |
+| Criterio de cierre | Trivy IaC sin `DS-0001` en la ejecución 2. **Cumplido.** |
 | Decisión | **Corregir** |
 | Responsable | Rafael Pachon (DevOps) |
 
@@ -117,7 +121,7 @@ La primera ejecución analizó el código original de Juice Shop y el gate **blo
 | Activo afectado | `Dockerfile` |
 | Amenaza Act. 2 | ST-07 / ST-17 (disponibilidad): un contenedor colgado no se detecta |
 | Remediación aplicada | `HEALTHCHECK` con el binario de Node de la imagen distroless (no tiene `curl` ni `sh`). |
-| Criterio de cierre | Trivy IaC sin `DS-0026`; `docker inspect` muestra estado `healthy` en el job DAST. |
+| Criterio de cierre | Trivy IaC sin `DS-0026` en la ejecución 2. **Cumplido.** |
 | Decisión | **Corregir** |
 | Responsable | Rafael Pachon (DevOps) |
 
@@ -195,8 +199,8 @@ La primera ejecución analizó el código original de Juice Shop y el gate **blo
 
 | ID | Qué pasó | Causa | Corrección |
 |---|---|---|---|
-| P-01 | QG-07 bloqueó con "SIN EVIDENCIA" aunque ZAP sí produjo reporte | `upload-artifact` con dos rutas en carpetas distintas guardó `zap.json` dentro de `reports/` del artefacto | Copiar ambos archivos a `reports/` antes de subir. El gate funcionó como debía: sin evidencia no libera. |
-| P-02 | QG-04 no contó 3 claves privadas altas dentro de la imagen | Las reglas de severidad alta solo miraban CVE con o sin parche; un secreto no tiene versión y no coincidía con ninguna | Nuevo modo `fix: secret` en el evaluador, regla en QG-04 y prueba unitaria que lo reproduce |
+| P-01 | QG-07 bloqueó con "SIN EVIDENCIA" aunque ZAP sí produjo reporte | `upload-artifact` con dos rutas en carpetas distintas guardó `zap.json` dentro de `reports/` del artefacto | Copiar ambos archivos a `reports/` antes de subir. El gate funcionó como debía: sin evidencia no libera. **Verificado:** en la ejecución 2 QG-07 evaluó el reporte (0 altas, 2 medias). |
+| P-02 | QG-04 no contó 3 claves privadas altas dentro de la imagen | Las reglas de severidad alta solo miraban CVE con o sin parche; un secreto no tiene versión y no coincidía con ninguna | Nuevo modo `fix: secret` en el evaluador, regla en QG-04 y prueba unitaria que lo reproduce. **Verificado:** en la ejecución 2 QG-04 evalúa la regla de secretos y los 5 secretos de la imagen quedan cubiertos por excepciones explícitas. |
 
 ## 4. Matriz de decisión
 

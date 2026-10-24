@@ -18,7 +18,7 @@ Cada `push` a `master`/`main`/`feature/**` y cada pull request ejecuta 7 control
 
 Además, el job **Test** ejecuta las pruebas unitarias del servidor y del evaluador de gates; el despliegue exige que pasen.
 
-Detalle y cobertura (12/26 amenazas): `docs/01_trazabilidad_riesgos.md`. Diagrama: `docs/05_diagrama_pipeline.md`.
+Detalle y cobertura (12/26 amenazas): `docs/01_trazabilidad_riesgos.md`. Diagrama: `docs/04_diagrama_pipeline.md`.
 
 ## Estructura
 ```
@@ -27,7 +27,7 @@ security/quality-gates.yml        política: umbral + acción por control
 security/exceptions.yml           riesgo aceptado (responsable, justificación, vencimiento ≤180 días)
 scripts/quality_gate.py           evaluador (pruebas: python -m unittest discover -s scripts/tests)
 k8s/                              namespace (PSA restricted), deployment, service, networkpolicy
-docs/                             contexto, trazabilidad, quality gates (xlsx), reporte de hallazgos, diagrama, checklist
+docs/                             contexto, trazabilidad, quality gates (xlsx), reporte de hallazgos, diagrama
 evidencias/                       reportes y capturas de cada ejecución (ejecucion1, ejecucion2) y análisis preliminar
 ```
 

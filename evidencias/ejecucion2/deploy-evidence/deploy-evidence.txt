@@ -1,0 +1,12 @@
+NAME                         READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                SELECTOR
+deployment.apps/juice-shop   1/1     1            1           11s   juice-shop   juice-shop:4048e46a3a30c8df2e7b7310c9f53cce83b33fe4   app.kubernetes.io/name=juice-shop
+
+NAME                              READY   STATUS    RESTARTS   AGE   IP           NODE                      NOMINATED NODE   READINESS GATES
+pod/juice-shop-67bb85d54d-6kt95   1/1     Running   0          10s   10.244.0.6   devsecops-control-plane   <none>           <none>
+
+NAME                 TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE   SELECTOR
+service/juice-shop   ClusterIP   10.96.191.74   <none>        80/TCP    11s   app.kubernetes.io/name=juice-shop
+
+NAME                                                  POD-SELECTOR                        AGE
+networkpolicy.networking.k8s.io/juice-shop-restrict   app.kubernetes.io/name=juice-shop   11s
+{"fsGroup":65532,"runAsGroup":65532,"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}}

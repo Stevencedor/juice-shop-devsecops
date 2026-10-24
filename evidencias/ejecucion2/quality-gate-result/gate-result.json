@@ -1,0 +1,105 @@
+[
+  {
+    "id": "QG-01",
+    "control": "Secretos",
+    "tool": "gitleaks",
+    "status": "PASS",
+    "lines": [
+      "CRITICAL/HIGH/MEDIUM/LOW: 0 (máximo 0) -> ok",
+      "225 hallazgos cubiertos por excepciones vigentes"
+    ],
+    "suppressed": 225,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-02",
+    "control": "SAST",
+    "tool": "semgrep",
+    "status": "WARN",
+    "lines": [
+      "CRITICAL/HIGH: 0 (máximo 0) -> ok",
+      "MEDIUM: 17 (máximo 0) -> WARN",
+      "2 hallazgos cubiertos por excepciones vigentes"
+    ],
+    "suppressed": 2,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-03",
+    "control": "SCA",
+    "tool": "trivy-sca",
+    "status": "WARN",
+    "lines": [
+      "CRITICAL: 0 (máximo 0) -> ok",
+      "HIGH (fixed): 0 (máximo 0) -> ok",
+      "HIGH (unfixed): 0 (máximo 0) -> ok",
+      "MEDIUM: 5 (máximo 0) -> WARN",
+      "67 hallazgos cubiertos por excepciones vigentes"
+    ],
+    "suppressed": 67,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-04",
+    "control": "Contenedor",
+    "tool": "trivy-image",
+    "status": "WARN",
+    "lines": [
+      "CRITICAL/HIGH/MEDIUM/LOW (secret): 0 (máximo 0) -> ok",
+      "CRITICAL: 0 (máximo 0) -> ok",
+      "HIGH (fixed): 0 (máximo 0) -> ok",
+      "HIGH (unfixed): 0 (máximo 0) -> ok",
+      "MEDIUM: 28 (máximo 0) -> WARN",
+      "64 hallazgos cubiertos por excepciones vigentes"
+    ],
+    "suppressed": 64,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-05",
+    "control": "IaC / configuración",
+    "tool": "trivy-iac",
+    "status": "PASS",
+    "lines": [
+      "CRITICAL/HIGH: 0 (máximo 0) -> ok",
+      "MEDIUM: 0 (máximo 0) -> ok",
+      "49 hallazgos cubiertos por excepciones vigentes"
+    ],
+    "suppressed": 49,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-06",
+    "control": "SBOM",
+    "tool": "sbom",
+    "status": "PASS",
+    "lines": [
+      "2744 componentes en el SBOM (mínimo 1)"
+    ],
+    "suppressed": 0,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-07",
+    "control": "DAST",
+    "tool": "zap",
+    "status": "WARN",
+    "lines": [
+      "CRITICAL/HIGH: 0 (máximo 0) -> ok",
+      "MEDIUM: 2 (máximo 0) -> WARN"
+    ],
+    "suppressed": 0,
+    "blocking_count": 0
+  },
+  {
+    "id": "QG-08",
+    "control": "Gobierno de excepciones",
+    "tool": "exceptions",
+    "status": "PASS",
+    "lines": [
+      "todas las excepciones son válidas (o no hay excepciones)"
+    ],
+    "suppressed": 0,
+    "blocking_count": 0
+  }
+]
