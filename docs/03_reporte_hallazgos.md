@@ -1,8 +1,9 @@
 # Reporte consolidado de hallazgos — Pipeline DevSecOps sobre OWASP Juice Shop
 
-**Repositorio:** https://github.com/Stevencedor/juice-shop-devsecops · **Rama:** `feature/devsecops-pipeline`
+**Repositorio:** https://github.com/Stevencedor/juice-shop-devsecops · **Ramas:** `feature/devsecops-pipeline` → `master` (PR #1)
 **Ejecución 1:** commit `c39085f` · 2026-10-24 · (https://github.com/Stevencedor/juice-shop-devsecops/actions/runs/40063793133)
 **Ejecución 2:** commit `4048e46` · 2026-10-24 · (https://github.com/Stevencedor/juice-shop-devsecops/actions/runs/40130173330)
+**Ejecución en master (publicación):** merge `85b1ad0` del PR #1 · 2026-10-24 · (https://github.com/Stevencedor/juice-shop-devsecops/actions/runs/40134086969)
 **Ambiente:** laboratorio (GitHub Actions + kind efímero, sin datos reales). Evidencia en `evidencias/ejecucion1/` y `evidencias/ejecucion2/`.
 
 ## 1. Resumen ejecutivo
@@ -24,6 +25,8 @@ La primera ejecución analizó el código original de Juice Shop y el gate **blo
 Fuente: `evidencias/ejecucion1/` y `evidencias/ejecucion2/quality-gate-result/gate-summary.md`. Una simulación local del evaluador con los reportes de la ejecución 1 había anticipado este mismo resultado antes del push.
 
 **Despliegue de la ejecución 2** (`evidencias/ejecucion2/deploy-evidence/`): Deployment `1/1` disponible con la imagen `juice-shop:4048e46…`; pod `Running` sin reinicios; Service `ClusterIP` (sin exposición externa); NetworkPolicy `juice-shop-restrict` aplicada; `securityContext` con `runAsNonRoot`, usuario 65532 y seccomp `RuntimeDefault`. La prueba de humo respondió `{"version":"20.3.0"}`.
+
+**Integración y publicación:** el PR #1 integró la rama en `master` sin conflictos. La ejecución sobre `master` repitió los 7 controles, el gate, las pruebas y el despliegue, todos en verde, y solo entonces publicó la imagen `ghcr.io/stevencedor/juice-shop-devsecops/juice-shop:85b1ad0ee6287c6bc3a677627bc48c529b5aac88`. La etiqueta es el SHA del commit, lo que permite rastrear la imagen hasta el código y los reportes exactos que la liberaron. En la rama de trabajo el job de publicación queda omitido por diseño: solo la rama por defecto publica.
 
 **Conteo por severidad (hallazgos que reportan las herramientas, antes de aplicar excepciones):**
 
