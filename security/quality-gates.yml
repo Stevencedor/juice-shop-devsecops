@@ -1,0 +1,179 @@
+# =============================================================================
+# Política de Quality Gates (fuente única de verdad)
+# La usan: scripts/quality_gate.py (decide en el pipeline) y
+#          scripts/export_gates_xlsx.py (genera docs/02_quality_gates.xlsx).
+# kind     : como se interpreta el reporte (gitleaks|semgrep|trivy|zap|sbom|exceptions)
+# tool     : nombre que se usa en security/exceptions.yml
+# rules    : umbral por severidad. severities = severidades afectadas,
+#            fix = any | fixed | unfixed (solo SCA/contenedor: hay versión corregida?),
+#            max = cantidad tolerada, action = block | warn
+# Escala de severidad (alto/medio/bajo): CRITICAL/HIGH = alto, MEDIUM = medio, LOW/INFO = bajo
+# =============================================================================
+gates:
+  - id: QG-01
+    control: Secretos
+    name: Secretos expuestos en el repositorio
+    tool: gitleaks
+    kind: gitleaks
+    report: gitleaks.json
+    rules:
+      - {severities: [CRITICAL, HIGH, MEDIUM, LOW], max: 0, action: block}
+    metric: Secretos detectados en código e historial git
+    threshold: "0 secretos"
+    action_text: Bloquear
+    severity_label: Alta
+    risks: "ST-23, ST-02, ST-16"
+    justification: >-
+      Una clave de firma o credencial en el repositorio permite forjar tokens
+      (ST-02) y se propaga a imagenes y respaldos (ST-16/ST-23). Debe rotarse y
+      detener la liberación (ADR-SEC-001).
+    validation: Reporte gitleaks.json sin hallazgos; secreto rotado y retirado del historial
+    owner: Líder técnico + Seguridad
+    evidence: reports/gitleaks.json
+
+  - id: QG-02
+    control: SAST
+    name: Vulnerabilidades en código propio
+    tool: semgrep
+    kind: semgrep
+    report: semgrep.json
+    rules:
+      - {severities: [CRITICAL, HIGH], max: 0, action: block}
+      - {severities: [MEDIUM], max: 0, action: warn}
+    metric: Hallazgos Semgrep por severidad (ERROR=alta, WARNING=media)
+    threshold: "0 altas; medias = advertencia"
+    action_text: Bloquear (alta) / Advertir (media)
+    severity_label: Alta
+    risks: "ST-01, ST-06, ST-19, ST-15, ST-16, ST-20"
+    justification: >-
+      Inyección SQL/NoSQL, XSS y recorrido de directorios son las amenazas de
+      prioridad alta (9/9) detectables con análisis estático.
+    validation: Hallazgo corregido y prueba de regresion; o excepción aprobada
+    owner: Desarrollador del modulo
+    evidence: reports/semgrep.json
+
+  - id: QG-03
+    control: SCA
+    name: Dependencias vulnerables (código fuente)
+    tool: trivy-sca
+    kind: trivy
+    report: trivy-sca.json
+    rules:
+      - {severities: [CRITICAL], fix: any, max: 0, action: block}
+      - {severities: [HIGH], fix: fixed, max: 0, action: block}
+      - {severities: [HIGH], fix: unfixed, max: 0, action: warn}
+      - {severities: [MEDIUM], fix: any, max: 0, action: warn}
+    metric: CVE por severidad y existencia de versión corregida
+    threshold: "0 criticas; 0 altas con parche; resto = advertencia"
+    action_text: Bloquear / Advertir
+    severity_label: Alta
+    risks: "ST-22, ST-02"
+    justification: >-
+      Un componente comprometido o vulnerable entra directo al artefacto (ST-22).
+      Las altas sin parche no pueden remediarse hoy: se advierte y se documenta.
+    validation: Actualizar versión o registrar excepción; re-ejecutar el escaneo
+    owner: Líder técnico
+    evidence: reports/trivy-sca.json
+
+  - id: QG-04
+    control: Contenedor
+    name: Vulnerabilidades y secretos en la imagen
+    tool: trivy-image
+    kind: trivy
+    report: trivy-image.json
+    rules:
+      - {severities: [CRITICAL], fix: any, max: 0, action: block}
+      - {severities: [HIGH], fix: fixed, max: 0, action: block}
+      - {severities: [HIGH], fix: unfixed, max: 0, action: warn}
+      - {severities: [MEDIUM], fix: any, max: 0, action: warn}
+    metric: CVE y secretos en capas de la imagen final
+    threshold: "0 criticas; 0 altas con parche; 0 secretos"
+    action_text: Bloquear / Advertir
+    severity_label: Alta
+    risks: "ST-22, ST-23"
+    justification: >-
+      La imagen es lo que realmente se despliega; incluye dependencias
+      transitivas y capas que el escaneo del repositorio no ve.
+    validation: Reconstruir imagen con base/paquetes corregidos; re-escanear
+    owner: DevOps
+    evidence: reports/trivy-image.json
+
+  - id: QG-05
+    control: IaC / configuración
+    name: Configuración insegura de Dockerfile y Kubernetes
+    tool: trivy-iac
+    kind: trivy
+    report: trivy-iac.json
+    rules:
+      - {severities: [CRITICAL, HIGH], max: 0, action: block}
+      - {severities: [MEDIUM], max: 0, action: warn}
+    metric: Misconfiguraciones por severidad
+    threshold: "0 criticas/altas; medias = advertencia"
+    action_text: Bloquear / Advertir
+    severity_label: Alta
+    risks: "ST-23, ST-25 (reduce el impacto de ST-15 y ST-16)"
+    justification: >-
+      Contenedores como root, sin limites o con secretos en manifiestos amplian
+      el impacto de cualquier explotacion (ADR-SEC-001).
+    validation: Manifiesto corregido; re-ejecutar trivy config
+    owner: DevOps
+    evidence: reports/trivy-iac.json
+
+  - id: QG-06
+    control: SBOM
+    name: Inventario de componentes (SBOM)
+    tool: sbom
+    kind: sbom
+    report: sbom.cdx.json
+    min_components: 1
+    rules: []
+    metric: Componentes registrados en el SBOM CycloneDX
+    threshold: ">= 1 componente (SBOM generado)"
+    action_text: Bloquear si no se genera
+    severity_label: Media
+    risks: "ST-22"
+    justification: >-
+      Sin inventario no se puede responder a un CVE nuevo ni demostrar
+      trazabilidad de la cadena de suministro.
+    validation: Archivo sbom.cdx.json adjunto a la ejecución
+    owner: DevOps
+    evidence: reports/sbom.cdx.json
+
+  - id: QG-07
+    control: DAST
+    name: Análisis dinámico (ZAP baseline)
+    tool: zap
+    kind: zap
+    report: zap.json
+    rules:
+      - {severities: [CRITICAL, HIGH], max: 0, action: block}
+      - {severities: [MEDIUM], max: 0, action: warn}
+    metric: Alertas ZAP por riesgo (alto/medio)
+    threshold: "0 altas; medias = advertencia"
+    action_text: Bloquear / Advertir
+    severity_label: Alta
+    risks: "ST-24, ST-25"
+    justification: >-
+      Verifica la aplicacion en ejecución: cabeceras, divulgación de errores y
+      versiones que el análisis estático no ve. Es solo pasivo (baseline).
+    validation: Re-ejecutar ZAP baseline tras la corrección
+    owner: Desarrollador + Seguridad
+    evidence: reports/zap.json
+
+  - id: QG-08
+    control: Gobierno de excepciones
+    name: Excepciones vigentes y completas
+    tool: exceptions
+    kind: exceptions
+    rules: []
+    metric: Excepciones vencidas o sin responsable/justificación
+    threshold: "0 inválidas"
+    action_text: Bloquear
+    severity_label: Alta
+    risks: "Todas (evita aceptar riesgo sin dueño)"
+    justification: >-
+      Aceptar un riesgo exige responsable, justificación y fecha de vencimiento
+      (máximo 180 días). Una excepción vencida vuelve a bloquear.
+    validation: Revisar security/exceptions.yml en cada ciclo
+    owner: Seguridad
+    evidence: security/exceptions.yml

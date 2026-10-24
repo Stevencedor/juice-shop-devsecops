@@ -1,0 +1,25 @@
+# =============================================================================
+# Registro de excepciones (riesgo aceptado). Una excepción SOLO es válida si
+# tiene tool, id, justification, owner y expires (AAAA-MM-DD, máximo 180 días).
+# Si vence o esta incompleta, el gate QG-08 bloquea y el hallazgo vuelve a contar.
+#
+# Campos de coincidencia:
+#   tool     gitleaks | semgrep | trivy-sca | trivy-image | trivy-iac | zap
+#   id       regla / CVE / ID de check (admite comodines, p. ej. CVE-2021-*; no se permite "*")
+#   path     (opcional) comodin sobre el archivo, p. ej. "routes/*"
+#   package  (opcional) comodin sobre el paquete (solo SCA/contenedor), p. ej. "lodash"
+#
+# Procedimiento: 1) ejecutar el pipeline, 2) abrir el artefacto
+# "quality-gate-result" > exceptions-suggested.yml, 3) triar cada grupo:
+# corregir (no va aqui) o aceptar (copiar aqui con justificación real).
+#
+# exceptions:
+#   - tool: semgrep
+#     id: "javascript.sequelize.security.audit.sequelize-injection-express.sequelize-injection-express"
+#     path: "routes/*"
+#     justification: "Vulnerabilidad intencional del laboratorio (reto SQLi); la app se despliega solo en kind efimero, sin datos reales, con NetworkPolicy restrictiva."
+#     owner: "Nombre Apellido (líder técnico)"
+#     expires: "2026-12-15"
+#     ticket: "VULN-002"
+# =============================================================================
+exceptions: []

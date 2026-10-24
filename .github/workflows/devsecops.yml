@@ -1,0 +1,389 @@
+# =============================================================================
+# Pipeline DevSecOps - Actividad 3 (Seguridad en Software II)
+# Sistema base: OWASP Juice Shop (el mismo analizado en las Actividades 1 y 2)
+#
+# Controles automatizados (trazabilidad completa en docs/01_trazabilidad_riesgos.md):
+#   C1 Secretos      Gitleaks          -> ST-23, ST-02, ST-16
+#   C2 SAST          Semgrep           -> ST-01, ST-06, ST-19, ST-15, ST-16, ST-20, ST-14
+#   C3 SCA           Trivy (fs)        -> ST-22, ST-02 (jsonwebtoken/express-jwt)
+#   C4 Contenedor    Trivy (image)     -> ST-22, ST-23
+#   C5 IaC           Trivy (config)    -> ST-23, ST-25 (+ impacto de ST-15/ST-16)
+#   C6 SBOM          Syft (CycloneDX)  -> ST-22
+#   C7 DAST          OWASP ZAP baseline-> ST-24, ST-25
+# Los scanners NO bloquean por si solos: producen reportes JSON y el job
+# "quality-gate" aplica security/quality-gates.yml (umbral + acción) y
+# security/exceptions.yml (riesgo aceptado con responsable y vencimiento).
+# No requiere secretos externos: solo usa el GITHUB_TOKEN automatico.
+# Todas las acciones de terceros estan fijadas por SHA (ver incidente Trivy,
+# marzo 2026: las etiquetas mutables no son confiables).
+# =============================================================================
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [master, main, "feature/**", "demo/**"]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: juice-shop
+  IMAGE_TAG: ${{ github.sha }}
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1
+  SEMGREP_VERSION: "1.180.0"
+  TRIVY_VERSION: v0.75.0
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # C1 - Secret scanning (revisa todo el historial de git)
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: "C1 - Secretos (Gitleaks)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Gitleaks
+        run: |
+          mkdir -p reports && chmod 777 reports
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            "$GITLEAKS_IMAGE" git /repo --no-banner --redact \
+            --report-format json --report-path /repo/reports/gitleaks.json --exit-code 0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-secrets
+          path: reports/gitleaks.json
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # C2 - SAST
+  # ---------------------------------------------------------------------------
+  sast:
+    name: "C2 - SAST (Semgrep)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Semgrep
+        run: |
+          mkdir -p reports
+          python3 -m venv /tmp/sg
+          /tmp/sg/bin/pip install --quiet "semgrep==${SEMGREP_VERSION}"
+          /tmp/sg/bin/semgrep scan \
+            --config p/owasp-top-ten --config p/javascript --config p/typescript --config p/nodejs \
+            --metrics=off --json --output reports/semgrep.json \
+            --exclude node_modules --exclude test --exclude cypress --exclude rsn \
+            --exclude data/static/codefixes --exclude frontend/src/assets \
+            .
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-sast
+          path: reports/semgrep.json
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # TEST - pruebas unitarias del servidor (misma receta que el CI oficial de
+  # Juice Shop) y pruebas del evaluador de quality gates. Si fallan, no se
+  # despliega: una remediación sin pruebas no es verificable.
+  # ---------------------------------------------------------------------------
+  unit-tests:
+    name: "Test - pruebas unitarias"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Pruebas del evaluador de quality gates
+        run: |
+          python3 -m venv /tmp/qgt
+          /tmp/qgt/bin/pip install --quiet pyyaml
+          /tmp/qgt/bin/python -m unittest discover -s scripts/tests -v
+      - name: Instalar la aplicación
+        run: npm install --no-audit --no-fund
+      - name: Pruebas unitarias del servidor (hasta 2 intentos)
+        run: |
+          npm run test:server || { echo "::warning::reintento por prueba inestable"; npm run test:server; }
+
+  # ---------------------------------------------------------------------------
+  # C3 - SCA. Juice Shop NO versiona package-lock.json (.npmrc: package-lock=false),
+  # por eso se genera sin instalar ni ejecutar scripts antes de escanear.
+  # ---------------------------------------------------------------------------
+  sca:
+    name: "C3 - SCA (Trivy fs)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Generar lockfiles (sin ejecutar scripts)
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          cd frontend && npm install --package-lock-only --ignore-scripts --no-audit --no-fund --legacy-peer-deps
+      - run: mkdir -p reports
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          format: json
+          output: reports/trivy-sca.json
+          skip-dirs: node_modules,test
+          exit-code: "0"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-sca
+          path: reports/trivy-sca.json
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # C5 - IaC / configuración (Dockerfile + k8s). Alcance: lo que realmente se
+  # despliega. terraform/, infrastructure/ y vagrant/ son material de otros
+  # entornos del proyecto original y quedan fuera de alcance (documentado).
+  # ---------------------------------------------------------------------------
+  iac:
+    name: "C5 - IaC (Trivy config)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: mkdir -p reports
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: config
+          scan-ref: .
+          format: json
+          output: reports/trivy-iac.json
+          skip-dirs: node_modules,test,terraform,infrastructure,vagrant
+          exit-code: "0"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-iac
+          path: reports/trivy-iac.json
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # C4 + C6 - Imagen: build, escaneo de contenedor y SBOM
+  # ---------------------------------------------------------------------------
+  container:
+    name: "C4/C6 - Imagen, Trivy y SBOM"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build de la imagen
+        run: |
+          docker build \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg VCS_REF="${GITHUB_SHA}" \
+            -t "${IMAGE_NAME}:${IMAGE_TAG}" .
+      - run: mkdir -p reports
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          scanners: vuln,secret
+          format: json
+          output: reports/trivy-image.json
+          exit-code: "0"
+      - name: SBOM (CycloneDX) con Syft
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: cyclonedx-json
+          output-file: reports/sbom.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Exportar imagen para los jobs siguientes
+        run: docker save "${IMAGE_NAME}:${IMAGE_TAG}" | gzip > image.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-container
+          path: |
+            reports/trivy-image.json
+            reports/sbom.cdx.json
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: image
+          path: image.tar.gz
+          retention-days: 1
+          compression-level: 0
+
+  # ---------------------------------------------------------------------------
+  # C7 - DAST (ZAP baseline = análisis pasivo contra la app en ejecución)
+  # ---------------------------------------------------------------------------
+  dast:
+    name: "C7 - DAST (OWASP ZAP baseline)"
+    runs-on: ubuntu-latest
+    needs: container
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: image
+      - name: Cargar y ejecutar la imagen
+        run: |
+          gunzip -c image.tar.gz | docker load
+          docker run -d --name juice -p 3000:3000 "${IMAGE_NAME}:${IMAGE_TAG}"
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:3000/rest/admin/application-version && break
+            sleep 3
+          done
+          curl -fsS http://localhost:3000/rest/admin/application-version
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: http://localhost:3000
+          fail_action: false
+          allow_issue_writing: false
+          artifact_name: zap-native
+      - name: Preparar reporte
+        if: always()
+        run: |
+          mkdir -p reports
+          cp report_json.json reports/zap.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: reports-dast
+          path: |
+            reports/zap.json
+            report_html.html
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # QUALITY GATE - decide si el software puede avanzar
+  # ---------------------------------------------------------------------------
+  quality-gate:
+    name: "Quality Gate"
+    runs-on: ubuntu-latest
+    needs: [secret-scan, sast, sca, iac, container, dast]
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: reports-*
+          merge-multiple: true
+          path: reports
+      - name: Evaluar quality gates
+        run: |
+          python3 -m venv /tmp/qg
+          /tmp/qg/bin/pip install --quiet pyyaml
+          /tmp/qg/bin/python scripts/quality_gate.py \
+            --policy security/quality-gates.yml \
+            --exceptions security/exceptions.yml \
+            --reports reports --out reports --suggest
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: quality-gate-result
+          path: |
+            reports/gate-summary.md
+            reports/gate-result.json
+            reports/exceptions-suggested.yml
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Despliegue en Kubernetes efimero (kind) + prueba de humo. Solo si el gate pasa.
+  # ---------------------------------------------------------------------------
+  deploy-k8s:
+    name: "Deploy K8s (kind) + smoke test"
+    runs-on: ubuntu-latest
+    needs: [quality-gate, unit-tests]
+    if: needs.quality-gate.result == 'success' && needs.unit-tests.result == 'success'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: image
+      - name: Cluster kind
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        with:
+          cluster_name: devsecops
+      - name: Desplegar
+        run: |
+          gunzip -c image.tar.gz | docker load
+          kind load docker-image "${IMAGE_NAME}:${IMAGE_TAG}" --name devsecops
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/
+          kubectl -n juice-shop set image deployment/juice-shop juice-shop="${IMAGE_NAME}:${IMAGE_TAG}"
+          kubectl -n juice-shop rollout status deployment/juice-shop --timeout=300s
+      - name: Smoke test
+        run: |
+          mkdir -p reports
+          kubectl -n juice-shop port-forward svc/juice-shop 8080:80 &
+          sleep 5
+          curl -fsS http://localhost:8080/rest/admin/application-version | tee reports/smoke.json
+          { kubectl -n juice-shop get deploy,pods,svc,networkpolicy -o wide; \
+            kubectl -n juice-shop get deploy juice-shop -o jsonpath='{.spec.template.spec.securityContext}{"\n"}'; } \
+            | tee reports/deploy-evidence.txt
+      - name: Diagnostico si falla
+        if: failure()
+        run: |
+          kubectl -n juice-shop describe pods || true
+          kubectl -n juice-shop logs deploy/juice-shop --tail=100 || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deploy-evidence
+          path: reports/
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Publicación de la imagen: solo en la rama por defecto y tras pasar todo
+  # ---------------------------------------------------------------------------
+  publish:
+    name: "Publicar imagen (GHCR)"
+    runs-on: ubuntu-latest
+    needs: deploy-k8s
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: image
+      - name: Push a GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${GITHUB_REPOSITORY,,}"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          gunzip -c image.tar.gz | docker load
+          docker tag "${IMAGE_NAME}:${IMAGE_TAG}" "ghcr.io/${REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
+          docker push "ghcr.io/${REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
